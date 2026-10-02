@@ -1,13 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:climapp_cc20262/src/enums/enviroments_enum.dart';
 import 'package:climapp_cc20262/src/models/weather_forecast_model.dart';
 import 'package:climapp_cc20262/src/services/device_info_service.dart';
 import 'package:climapp_cc20262/src/services/weather_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 class ListCityController extends ChangeNotifier {
   ListCityController({
@@ -31,6 +28,7 @@ class ListCityController extends ChangeNotifier {
     'Salvador,BA',
     'Curitiba,PR',
   ];
+
   Future<void> loadCities() async {
     isLoading = true;
     errorMessage = '';
@@ -50,7 +48,8 @@ class ListCityController extends ChangeNotifier {
       debugPrint(errorMessage);
       debugPrint('====================================');
     } catch (e) {
-      print(e);
+      errorMessage = 'Deu ruim ao carregar as cidades.';
+      debugPrint('Erro: $e');
     } finally {
       isLoading = false;
       notifyListeners();

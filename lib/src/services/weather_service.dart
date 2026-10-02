@@ -26,7 +26,7 @@ class WeatherService {
               );
             },
           );
-      if (response.statusCode >= 200 || response.statusCode < 300) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         final jsonDecoded = jsonDecode(response.body)['results'];
         final model = WeatherForecastModel.fromJson(jsonDecoded);
         listCity.add(model);

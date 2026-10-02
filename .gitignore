@@ -63,3 +63,6 @@ macos/Runner/GoogleService-Info.plist
 *serviceAccountKey*.json
 *service-account*.json
 *.fcm.key
+
+# Environment variables
+.env

@@ -1,5 +1,6 @@
 import 'package:climapp_cc20262/src/controller/list_city_controller.dart';
 import 'package:climapp_cc20262/src/screens/welcome_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:climapp_cc20262/src/services/device_info_service.dart';
 import 'package:climapp_cc20262/src/services/notification_service.dart';
 import 'package:climapp_cc20262/src/services/weather_service.dart';
@@ -19,6 +20,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env"); // Carrega o arquivo .env se existir
+  } catch (e) {
+    debugPrint("Aviso: .env não carregado: $e");
+  }
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   final notificationService = NotificationService();
@@ -31,6 +37,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final notificationService = NotificationService();
     return MultiProvider(
       providers: [
         Provider<WeatherService>(create: (_) => WeatherService()),
@@ -44,6 +51,8 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Climapp',
+        navigatorKey: notificationService.navigatorKey,
+        scaffoldMessengerKey: notificationService.scaffoldMessengerKey,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           textTheme: GoogleFonts.montserratTextTheme(

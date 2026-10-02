@@ -15,11 +15,6 @@ class _ListCityScreenState extends State<ListCityScreen> {
   final TextEditingController textController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
     textController.dispose();
     super.dispose();
@@ -42,6 +37,50 @@ class _ListCityScreenState extends State<ListCityScreen> {
             mainAxisSize: MainAxisSize.max,
             children: [
               const SizedBox(height: 25),
+              // Identificação do país em algum canto da tela (canto superior direito)
+              Align(
+                alignment: Alignment.topRight,
+                child: Consumer<ListCityController>(
+                  builder: (context, controller, child) {
+                    if (controller.deviceCountry.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.public,
+                            color: Color(0xFF7693FF),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            'País: ${controller.deviceCountry}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
               TextField(
                 style: const TextStyle(color: Colors.white),
                 controller: textController,
@@ -67,26 +106,56 @@ class _ListCityScreenState extends State<ListCityScreen> {
                     if (controller.isLoading) {
                       return const Center(child: CircularProgressIndicator());
                     }
-                    return ListView.builder(
-                      itemCount: controller.filteredCities.length,
-                      itemBuilder: (context, index) {
-                        final city = controller.filteredCities[index];
-                        return CityTileWidget(
-                          cityName: city.cityName,
-                          icon: city.conditionSlug,
-                          temperature: city.temp,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => WeatherCityScreen(
-                                  weatherForecastModel: city,
+                    // Mensagem de erro caso não consiga obter os dados
+                    if (controller.errorMessage.isNotEmpty) {
+                      return RefreshIndicator(
+                        onRefresh: controller.loadCities,
+                        color: const Color(0xFF7693FF),
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.4,
+                              child: Center(
+                                child: Text(
+                                  controller.errorMessage,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
                                 ),
                               ),
-                            );
-                          },
-                        );
-                      },
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return RefreshIndicator(
+                      onRefresh: controller.loadCities,
+                      color: const Color(0xFF7693FF),
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: controller.filteredCities.length,
+                        itemBuilder: (context, index) {
+                          final city = controller.filteredCities[index];
+                          return CityTileWidget(
+                            cityName: city.cityName,
+                            icon: city.conditionSlug,
+                            temperature: city.temp,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => WeatherCityScreen(
+                                    weatherForecastModel: city,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
                     );
                   },
                 ),
