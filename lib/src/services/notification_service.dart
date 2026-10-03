@@ -1,6 +1,7 @@
 // lib/src/services/notification_service.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
   // Instância singleton para acesso global
@@ -10,12 +11,25 @@ class NotificationService {
 
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
+  // Plugin de notificações locais (para exibir banner nativo no Android em foreground)
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+
   // Chave global para permitir navegação sem BuildContext
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
 
   Future<void> initialize() async {
+    // 0. Inicializar flutter_local_notifications
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initSettings =
+        InitializationSettings(android: androidSettings);
+    await _localNotifications.initialize(
+      settings: initSettings,
+    );
+
     // Sempre configurar os handlers para escutar mensagens em foreground/background
     _setupMessageHandlers();
 
@@ -45,6 +59,14 @@ class NotificationService {
       _fcm.onTokenRefresh.listen((newToken) {
         debugPrint('FCM Token atualizado: $newToken');
       });
+
+      // 3. Forçar exibição do banner nativo mesmo com o app em foreground (iOS)
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
     } else {
       debugPrint('Permissão negada ou não configurada.');
     }
@@ -56,17 +78,12 @@ class NotificationService {
       final title = message.notification?.title ??
           message.data['title'] ??
           'Notificação recebida';
-      final body = message.notification?.body ??
-          message.data['body'] ??
-          '';
+      final body = message.notification?.body ?? message.data['body'] ?? '';
 
       debugPrint('Mensagem recebida em Foreground: $title');
 
-      showInAppNotification(
-        title: title,
-        body: body,
-        message: message,
-      );
+      // Exibe a notificação nativa do sistema via flutter_local_notifications
+      _showLocalNotification(title: title, body: body);
     });
 
     // Cenário: Background (App minimizado e usuário clica na notificação)
@@ -84,26 +101,30 @@ class NotificationService {
     });
   }
 
-  void showInAppNotification({
+  Future<void> _showLocalNotification({
     required String title,
     required String body,
-    RemoteMessage? message,
-  }) {
-    final snackBar = SnackBar(
-      content: Text(body.isNotEmpty ? '$title\n$body' : title),
-      backgroundColor: Colors.blueAccent,
-      duration: const Duration(seconds: 4),
+  }) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'fcm_foreground_channel', // ID do canal (único por app)
+      'Notificações em Primeiro Plano', // Nome visível nas configurações do Android
+      channelDescription: 'Exibe notificações recebidas com o app aberto',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: true,
     );
 
-    final messenger = scaffoldMessengerKey.currentState;
-    if (messenger != null) {
-      messenger.showSnackBar(snackBar);
-    } else {
-      final context = navigatorKey.currentContext;
-      if (context != null) {
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-    }
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await _localNotifications.show(
+      id: 0,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
+    );
   }
 
   void _handleDeepLink(RemoteMessage message) {
